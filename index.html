@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kafíčko App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-card">
+        <h1>CafeR</h1>
+        
+        <form id="coffeeForm">
+            <section>
+                <label for="userSelect">Uživatel:</label>
+                <select id="userSelect" required>
+                    <option value="" disabled selected>Vyberte jméno...</option>
+                </select>
+            </section>
+
+            <section id="drinksContainer">
+                <p class="loading">Načítám nápoje...</p>
+            </section>
+
+            <button type="submit" id="submitBtn">Odeslat záznam</button>
+            <div id="statusMsg"></div>
+        </form>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
