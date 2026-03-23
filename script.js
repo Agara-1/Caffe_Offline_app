@@ -1,71 +1,62 @@
 const API_URL = "https://crm.skch.cz/ajax0/procedure.php";
 const AUTH = "Basic " + btoa("coffe:kafe");
 
-// Objekt pro sledování stavu aplikace
 let state = {
     selectedUser: localStorage.getItem('lastUser') || "",
     drinks: {}
 };
 
-// 1. NAČTENÍ DAT PŘI STARTU
 async function init() {
     const status = document.getElementById('statusMsg');
-    
     try {
-        // Načtení lidí
+        // 1. Načtení lidí
         const usersRes = await fetch(`${API_URL}?cmd=getPeopleList`, { 
             headers: { 'Authorization': AUTH } 
         });
-        if (!usersRes.ok) throw new Error("Nelze načíst lidi");
         const users = await usersRes.json();
+        console.log("Lidé načteni:", users); // Pro kontrolu v F12
         renderUsers(users);
 
-        // Načtení drinků
+        // 2. Načtení nápojů
         const typesRes = await fetch(`${API_URL}?cmd=getTypesList`, { 
             headers: { 'Authorization': AUTH } 
         });
-        if (!typesRes.ok) throw new Error("Nelze načíst nápoje");
         const types = await typesRes.json();
+        console.log("Nápoje načteny:", types); // Pro kontrolu v F12
         renderDrinks(types);
 
-        status.innerText = ""; // Vše ok, smažeme chybu
+        if(status) status.innerText = ""; 
     } catch (err) {
-        console.error(err);
-        status.innerText = "Chyba připojení k API. Zkontroluj internet.";
+        console.error("Chyba v init:", err);
+        if(status) status.innerText = "Chyba připojení k API. Zkontroluj internet.";
     }
 }
 
-// 2. VYKRESLENÍ SEZNAMU UŽIVATELŮ
 function renderUsers(users) {
     const select = document.getElementById('userSelect');
+    if (!select) return;
     select.innerHTML = '<option value="" disabled selected>Vyberte jméno...</option>';
     
     users.forEach(u => {
         const opt = document.createElement('option');
-        // API může vracet ID nebo id, pojistíme se:
+        // Pozor: API vrací ID (velkými písmeny)
         opt.value = u.ID || u.id; 
         opt.textContent = u.name;
-        
-        // Pokud je to ten poslední uložený, vybereme ho
-        if (opt.value == state.selectedUser) {
-            opt.selected = true;
-        }
+        if (opt.value == state.selectedUser) opt.selected = true;
         select.appendChild(opt);
     });
 
-    // Uložíme uživatele při každé změně
-    select.onchange = (e) => {
-        localStorage.setItem('lastUser', e.target.value);
-    };
+    select.onchange = (e) => localStorage.setItem('lastUser', e.target.value);
 }
 
-// 3. VYKRESLENÍ NÁPOJŮ (+ a -)
 function renderDrinks(types) {
     const container = document.getElementById('drinksContainer');
+    if (!container) return;
     container.innerHTML = "";
     
     types.forEach(tObj => {
-        const tName = tObj.typ || tObj; // API vrací objekt nebo jen string
+        // API vrací objekt s vlastností "typ"
+        const tName = tObj.typ || tObj; 
         state.drinks[tName] = 0;
 
         const row = document.createElement('div');
@@ -82,62 +73,11 @@ function renderDrinks(types) {
     });
 }
 
-// Globální funkce pro tlačítka (musí být pod window, aby fungovala z HTML)
 window.changeVal = (name, amount) => {
     state.drinks[name] = Math.max(0, state.drinks[name] + amount);
-    document.getElementById(`val-${name}`).innerText = state.drinks[name];
+    const el = document.getElementById(`val-${name}`);
+    if (el) el.innerText = state.drinks[name];
 };
 
-// 4. ODESLÁNÍ DAT
-document.getElementById('coffeeForm').onsubmit = async (e) => {
-    e.preventDefault();
-    const status = document.getElementById('statusMsg');
-    const user = document.getElementById('userSelect').value;
-
-    if (!user) {
-        status.innerText = "⚠️ Vyber uživatele!";
-        return;
-    }
-
-    const payload = {
-        user: user,
-        drinks: Object.keys(state.drinks).map(name => ({
-            type: name,
-            value: state.drinks[name]
-        }))
-    };
-
-    try {
-        status.innerText = "Odesílám...";
-        const res = await fetch(`${API_URL}?cmd=saveDrinks`, {
-            method: 'POST',
-            headers: { 
-                'Authorization': AUTH,
-                'Content-Type': 'application/json' 
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-            status.innerText = "✅ Úspěšně odesláno!";
-            resetCounts();
-        } else {
-            throw new Error("Chyba serveru");
-        }
-    } catch (err) {
-        // Tady je ten slíbený offline režim - uložíme do sessionStorage
-        const timestamp = Date.now();
-        sessionStorage.setItem(`pending_${timestamp}`, JSON.stringify(payload));
-        status.innerText = "☁️ Offline: Uloženo do paměti prohlížeče.";
-    }
-};
-
-function resetCounts() {
-    for (let key in state.drinks) {
-        state.drinks[key] = 0;
-        const el = document.getElementById(`val-${key}`);
-        if (el) el.innerText = 0;
-    }
-}
-
+// Spuštění aplikace
 init();
