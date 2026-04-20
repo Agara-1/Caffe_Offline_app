@@ -3,27 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kafíčko App</title>
+    <title>CafeR App</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="toast" class="toast hidden"></div>
+
     <div class="app-card">
         <h1>CafeR</h1>
         
         <form id="coffeeForm">
-            <section>
-                <label for="userSelect">Uživatel:</label>
+            <div class="section-box">
+                <label for="userSelect" class="section-label">Uživatel</label>
                 <select id="userSelect" required>
                     <option value="" disabled selected>Vyberte jméno...</option>
                 </select>
-            </section>
+            </div>
 
-            <section id="drinksContainer">
-                <p class="loading">Načítám nápoje...</p>
-            </section>
+            <div class="section-box">
+                <label class="section-label">Nápoje</label>
+                <div id="drinksContainer">
+                    <p style="text-align: center; color: #888; font-size: 0.9rem;">Načítání nápojů...</p>
+                </div>
+            </div>
 
             <button type="submit" id="submitBtn">Odeslat záznam</button>
-            <div id="statusMsg"></div>
         </form>
     </div>
 

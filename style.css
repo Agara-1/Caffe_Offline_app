@@ -1,19 +1,180 @@
-:root { --primary: #6f4e37; --bg: #f5f5f7; }
-body { font-family: -apple-system, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
-.app-card { background: white; width: 100%; max-width: 400px; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+:root { 
+    --primary: #6f4e37; /* Tvoje kávová barva */
+    --bg: #f4f4f7; 
+}
 
-h1 { text-align: center; color: var(--primary); margin-bottom: 25px; }
-select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 1rem; margin-bottom: 20px; }
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+}
 
-.drink-row { display: flex; align-items: center; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #eee; }
-.drink-name { font-weight: 600; flex-grow: 1; }
+body { 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+    background: var(--bg); 
+    display: flex; 
+    justify-content: center; 
+    align-items: flex-start; /* Aby karta nebyla vždy úplně uprostřed na výšku na mobilu */
+    padding: 40px 20px; 
+    min-height: 100vh;
+}
 
-.controls { display: flex; align-items: center; gap: 15px; }
-.btn-round { width: 35px; height: 35px; border-radius: 50%; border: 1px solid var(--primary); 
-             background: white; color: var(--primary); font-size: 1.2rem; cursor: pointer; }
-.btn-round:active { background: var(--primary); color: white; }
-.count { font-size: 1.2rem; min-width: 20px; text-align: center; }
+/* Hlavní karta - vzdušnější a elegantnější stín */
+.app-card { 
+    background: white; 
+    width: 100%; 
+    max-width: 420px; 
+    padding: 35px 25px; 
+    border-radius: 24px; 
+    box-shadow: 0 12px 40px rgba(0,0,0,0.06); 
+}
 
-#submitBtn { width: 100%; padding: 16px; background: var(--primary); color: white; 
-             border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; margin-top: 25px; }
-#statusMsg { text-align: center; margin-top: 15px; font-weight: bold; }
+h1 { 
+    text-align: center; 
+    color: var(--primary); 
+    margin-bottom: 30px; 
+    font-size: 2.2rem;
+    letter-spacing: -0.5px;
+}
+
+/* Jemnější sekce - bílé pozadí, jen velmi jemný obrys */
+.section-box {
+    background: #ffffff;
+    border: 1px solid #eaeaea;
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.section-label {
+    display: block;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    color: #888;
+    margin-bottom: 15px;
+}
+
+select { 
+    width: 100%; 
+    padding: 14px; 
+    border-radius: 12px; 
+    border: 1px solid #ddd; 
+    font-size: 1rem; 
+    background: #fdfdfd;
+    color: #333;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+select:focus {
+    border-color: var(--primary);
+}
+
+.drink-row { 
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+    padding: 12px 0; 
+    border-bottom: 1px solid #f0f0f0; 
+}
+
+.drink-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.drink-name { 
+    font-weight: 500; 
+    flex-grow: 1; 
+    color: #333;
+    font-size: 1.05rem;
+}
+
+.controls { 
+    display: flex; 
+    align-items: center; 
+    gap: 15px; 
+}
+
+.btn-round { 
+    width: 36px; 
+    height: 36px; 
+    border-radius: 50%; 
+    border: 1.5px solid var(--primary); 
+    background: white; 
+    color: var(--primary); 
+    font-size: 1.2rem; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer; 
+    transition: all 0.2s;
+}
+
+.btn-round:active { 
+    background: var(--primary); 
+    color: white; 
+    transform: scale(0.95);
+}
+
+.count { 
+    font-size: 1.2rem; 
+    min-width: 24px; 
+    text-align: center; 
+    font-weight: bold;
+    color: #222;
+}
+
+#submitBtn { 
+    width: 100%; 
+    padding: 16px; 
+    background: var(--primary); 
+    color: white; 
+    border: none; 
+    border-radius: 14px; 
+    font-size: 1.1rem; 
+    font-weight: bold; 
+    margin-top: 10px; 
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(111, 78, 55, 0.3);
+}
+
+#submitBtn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 6px rgba(111, 78, 55, 0.3);
+}
+
+/* --- OPRAVENÉ VYSKAKOVACÍ OKÉNKO --- */
+.toast {
+    position: fixed; 
+    top: 20px; 
+    left: 50%; 
+    transform: translateX(-50%);
+    padding: 14px 28px; 
+    border-radius: 30px; 
+    background: var(--primary); /* Sladěno do hnědé */
+    color: white; 
+    font-weight: bold;
+    font-size: 0.95rem;
+    z-index: 1000; 
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15); 
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    text-align: center; 
+    min-width: 250px;
+}
+
+.toast.hidden { 
+    opacity: 0; 
+    top: -50px; 
+    pointer-events: none; 
+    transform: translateX(-50%) scale(0.9);
+}
+
+/* Různé stavy okénka */
+.toast.success { background: #388e3c; } /* Zelená pro úspěch */
+.toast.error { background: #d32f2f; }   /* Červená pro chybu */
+.toast.warning { background: #f57c00; } /* Oranžová pro offline */

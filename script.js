@@ -1,4 +1,4 @@
-const API_URL = "https://crm.skch.cz/ajax0/procedure.php";
+const API_URL = "https://crm.skch.cz/ajax0/procedure2.php"; 
 const AUTH = "Basic " + btoa("coffe:kafe");
 
 let state = {
@@ -6,36 +6,71 @@ let state = {
     drinks: {}
 };
 
+let toastTimeout;
+function showToast(message, type = "info") {
+    const toast = document.getElementById("toast");
+    if (!toast) return;
+    
+    toast.className = `toast ${type}`;
+    toast.innerText = message;
+    
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+        toast.classList.add("hidden");
+    }, 3000);
+}
+
+async function callApi(cmd, method = "GET", body = null) {
+    const options = {
+        method: method,
+        headers: {
+            "Authorization": AUTH,
+            "Content-Type": "application/json"
+        }
+    };
+
+    if (method === "POST" && body) {
+        options.body = JSON.stringify(body);
+    }
+
+    const res = await fetch(`${API_URL}?cmd=${cmd}`, options);
+    const responseText = await res.text();
+    console.log(`Debug serveru (${cmd}):`, responseText);
+
+    if (!res.ok) throw new Error(`HTTP chyba ${res.status}`);
+    
+    if (responseText.toLowerCase().includes("err") || responseText.toLowerCase().includes("chyba")) {
+        throw new Error(`Server hlasi chybu: ${responseText}`);
+    }
+
+    try {
+        return JSON.parse(responseText);
+    } catch(e) {
+        return responseText;
+    }
+}
 
 async function init() {
-    const status = document.getElementById('statusMsg');
     try {
-
-        const usersRes = await fetch(`${API_URL}?cmd=getPeopleList`, { headers: { 'Authorization': AUTH } });
-        const users = await usersRes.json();
+        const users = await callApi("getPeopleList");
         renderUsers(users);
 
-        const typesRes = await fetch(`${API_URL}?cmd=getTypesList`, { headers: { 'Authorization': AUTH } });
-        const types = await typesRes.json();
+        const types = await callApi("getTypesList");
         renderDrinks(types);
-
-        if(status) status.innerText = ""; 
-
 
         syncOfflineData();
 
     } catch (err) {
-        console.error("Chyba v init (zřejmě offline):", err);
-        if(status) status.innerText = "Nelze načíst data z API. Jste offline?";
+        console.error("Chyba v init:", err);
+        showToast("Nelze nacist data z API. Jste offline?", "error");
     }
 }
 
 function renderUsers(usersData) {
     const select = document.getElementById('userSelect');
     if (!select) return;
-    select.innerHTML = '<option value="" disabled selected>Vyberte jméno...</option>';
+    select.innerHTML = '<option value="" disabled selected>Vyberte jmeno...</option>';
     
-
     const usersArray = Array.isArray(usersData) ? usersData : Object.values(usersData);
 
     usersArray.forEach(u => {
@@ -53,7 +88,6 @@ function renderUsers(usersData) {
         document.cookie = `lastUser=${val}; max-age=31536000; path=/`;
     };
 }
-
 
 function renderDrinks(typesData) {
     const container = document.getElementById('drinksContainer');
@@ -80,21 +114,18 @@ function renderDrinks(typesData) {
     });
 }
 
-
 window.changeVal = (name, amount) => {
     state.drinks[name] = Math.max(0, state.drinks[name] + amount);
     const el = document.getElementById(`val-${name}`);
     if (el) el.innerText = state.drinks[name];
 };
 
-
+// --- ODESILANI FORMULARE ---
 document.getElementById('coffeeForm').addEventListener('submit', async (e) => {
     e.preventDefault(); 
-    const status = document.getElementById('statusMsg');
 
     if (!state.selectedUser) {
-        status.innerText = "Prosím, vyberte uživatele.";
-        status.style.color = "red";
+        showToast("Prosim, vyberte uzivatele.", "error");
         return;
     }
 
@@ -108,31 +139,26 @@ document.getElementById('coffeeForm').addEventListener('submit', async (e) => {
         drinks: drinksArray
     };
 
-    status.innerText = "Odesílám...";
-    status.style.color = "black";
+    const maNeco = drinksArray.some(d => d.value > 0);
+    if (!maNeco) {
+        showToast("Zadej alespon jeden vypity napoj.", "warning");
+        return;
+    }
+
+    showToast("Odesilam...", "info");
 
     try {
+        if (!navigator.onLine) throw new Error("Offline");
 
-        const res = await fetch(`${API_URL}?cmd=save`, { 
-            method: 'POST',
-            headers: { 
-                'Authorization': AUTH,
-                'Content-Type': 'application/json' 
-            },
-            body: JSON.stringify(payload)
-        });
+        await callApi("saveDrinks", "POST", payload);
 
-        if (!res.ok) throw new Error("Chyba ze strany serveru.");
-
-        status.innerText = "Záznam úspěšně odeslán!";
-        status.style.color = "green";
+        showToast("Zaznam uspesne odeslan!", "success");
         resetForm();
 
     } catch (err) {
-        console.error("Nepodařilo se odeslat, ukládám lokálně:", err);
+        console.error("Chyba odesilani, ukladam lokalne:", err.message);
         saveOfflineData(payload);
-        status.innerText = "Jste offline. Data se uložila a odešlou se později.";
-        status.style.color = "#d97706"; 
+        showToast("Offline rezim. Data se odeslou pozdeji.", "warning");
         resetForm();
     }
 });
@@ -154,37 +180,31 @@ function saveOfflineData(payload) {
 async function syncOfflineData() {
     let records = JSON.parse(localStorage.getItem('offlineRecords') || '[]');
     if (records.length === 0) return;
+    
+    if (!navigator.onLine) return; 
 
     const remainingRecords = []; 
+    let successCount = 0;
 
     for (const payload of records) {
         try {
-            const res = await fetch(`${API_URL}?cmd=save`, { 
-                method: 'POST',
-                headers: { 'Authorization': AUTH, 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            
-            if (!res.ok) throw new Error("API selhalo");
-            console.log("Úspěšně dosynchronizováno offline záznam:", payload);
-            
+            await callApi("saveDrinks", "POST", payload);
+            console.log("Uspesne dosynchronizovan zaznam:", payload);
+            successCount++;
         } catch (err) {
+            console.error("Nepovedlo se synchronizovat:", err.message);
             remainingRecords.push(payload); 
         }
     }
-    if (remainingRecords.length === 0) {
-        localStorage.removeItem('offlineRecords');
-    } else {
-        localStorage.setItem('offlineRecords', JSON.stringify(remainingRecords));
+    
+    localStorage.setItem('offlineRecords', JSON.stringify(remainingRecords));
+
+    if(successCount > 0) {
+        showToast(`Uspesne synchronizovano ${successCount} offline zaznamu!`, "success");
     }
 }
 
 window.addEventListener('online', () => {
-    const status = document.getElementById('statusMsg');
-    if(status) {
-        status.innerText = "Znovu připojeno! Odesílám čekající data...";
-        status.style.color = "blue";
-    }
     syncOfflineData();
 });
 
